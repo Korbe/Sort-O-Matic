@@ -19,12 +19,20 @@ date_formats = [
     'dmy',       # 290223
 ]
 
+datetime_format_mappings = {
+    'Y': '%Y',
+    'm': '%m',
+    'd': '%d',
+}
+
 date_regex_replacements = {
     'd': r'\d{1,2}',
     'Y': r'\d{4}',
     'y': r'\d{2}',
     'm': r'\d{1,2}',
-    '[_\-\.]': r'[_\-\.]'
+    '-': r'\-',
+    '_': r'\_',
+    '.': r'\.'
 }
 
 image_extensions = [
@@ -62,7 +70,7 @@ video_extensions = [
     '.vob'
 ]
 
-media_extensions = image_extensions + video_extensions
+
 
 # Convert date format into a regular expression
 def format_to_regex(date_format):
@@ -71,7 +79,20 @@ def format_to_regex(date_format):
     for pattern, replacement in date_regex_replacements.items():
         regex_format = regex_format.replace(pattern, replacement)
 
-    return f"^{regex_format}$"
+    return f"{regex_format}"
+
+def convert_to_strptime_format(date_formats):
+    converted_formats = []
+    for date_format in date_formats:
+        converted_format = ''.join(datetime_format_mappings.get(char, char) for char in date_format)
+        converted_formats.append(converted_format)
+
+    return converted_formats
+
+media_extensions = image_extensions + video_extensions
 
 # Create an array of regular expressions
 date_format_regexes = [format_to_regex(date_format) for date_format in date_formats]
+
+# Create an array of correct formats of strptime
+strptime_formats = convert_to_strptime_format(date_formats)

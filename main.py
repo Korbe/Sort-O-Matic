@@ -1,62 +1,93 @@
 import os
+import sys
+import threading
 import time
-from env import PRINT_ARGS
+from env import CREATE_TEMPLATE, PRINT_ANALYZES_DETAIL
 from image_processor import process_image, sort
 from config import media_extensions
-from io_helper import create_directory, create_template_folder
-from arg_parser import parse_arguments
+from io_helper import create_directory, create_template_folder, move_file
+from arg_parser import args
 
-
-#   todo dont overwrite files already there
-#   overwritte with the same Name no no no
-# x rename to year-month-day_oldName images cannot have the same name anymore
-# x sort them into months 1_Januar 2_February or german 
-#   make month changeable
-
-
-
-def get_arguments():
-    args = parse_arguments();
-    
-    if(PRINT_ARGS):
-        print("Arguments provided:")
-        for arg_name, arg_value in vars(args).items():
-            print(f"{arg_name}: {arg_value}")
-            
-    return args;
-    
 def main():
-    
-
-    #source_path = getPath("Enter the source directory ([enter] default current directory): ", "source")
-    #target_path = getPath("Enter the target base directory ([enter] default current directory\processed-images): ", "target")
-    
-    # source_path = os.getcwd() + '\source'
-    # target_path = os.getcwd() + '\output'
-    
-    
-    
-    args = get_arguments();    
-    
-    # Create the the template folder
-    create_template_folder(os.path.join(args.target, "Vorlage"))
+    if(CREATE_TEMPLATE):
+        create_template_folder(os.path.join(args.target, "Vorlage"))
     
     print("-" * 40)
-    print("Starting sorting process...\n")
+    
+    file_count, files_with_correct_type, directory_count = count_files(args.source)
+    print(f"{files_with_correct_type} of {file_count} files found with supported type")
+    
+    if(files_with_correct_type == 0):
+        print("No files match supported image or video types")    
+        return
 
-    # sort(args.source, args.target)
+    print("Starting sort process...\n")
+
     
-    # print("")
-    # print("-" * 40)
-    # print(f"Sort process completed in {int(elapsed_time // 60)} minutes or {int(elapsed_time % 60)} seconds")
-    # print(f"Moved {processed_files}/{total} files from {directories} directories")
-    # print("\n" + errors)
+    mediaPathMapping = analyze_media(file_count, directory_count)
     
-    #print(f"processed_files: {processed_files}")
-    #print(f"count_files: {count_files(source_path)}")
+    print("")
     
+    move_files(mediaPathMapping, file_count, directory_count)
     
 
+
+def analyze_media(file_count, directory_count):
+    print("Analyze media...")
+     
+    if(PRINT_ANALYZES_DETAIL == False):    
+        stop_event = threading.Event()
+        # Start the spinner in a separate thread
+        spinner_thread = threading.Thread(target=spinner_animation, args=(stop_event,))
+        spinner_thread.start() 
+    
+    start_time = time.time()
+   
+    try:    
+        mediaPathMapping, processed_files, errors = sort(args.source, args.target)
+        
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+    finally:
+        if(PRINT_ANALYZES_DETAIL == False):
+            # Stop the spinner
+            stop_event.set()
+            spinner_thread.join()
+        
+    print(f"Completed in {int(elapsed_time // 60)} minutes or {elapsed_time:.3f} seconds")
+    print(f"Analyzed {processed_files}/{file_count} files in {directory_count} directories")
+    
+    if(errors):
+        print("\n" + errors + "\n")
+        
+    return mediaPathMapping
+
+def move_files(mediaPathMapping, file_count, directory_count):
+    
+    print(f"{'Move' if args.move else 'Copy'} files...")
+    
+    stop_event = threading.Event()
+    
+    # Start the spinner in a separate thread
+    spinner_thread = threading.Thread(target=spinner_animation, args=(stop_event,))
+    spinner_thread.start() 
+    
+    start_time = time.time()
+    
+    try:  
+        for key, value in mediaPathMapping.items():
+            create_directory(os.path.dirname(value))
+            move_file(key, value)
+            
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+    finally:      
+        # Stop the spinner
+        stop_event.set()
+        spinner_thread.join()
+        
+    print(f"Completed in {int(elapsed_time // 60)} minutes or {elapsed_time:.3f} seconds")
+    print(f"{'Moved' if args.move else 'Copied'} {len(mediaPathMapping)}/{file_count} files in {directory_count} directories")
 
 
 def count_files(directory : str):
@@ -67,8 +98,9 @@ def count_files(directory : str):
     for _, _, files in os.walk(directory):
         directory_count += 1;
         file_count += len(files)
-        supported_files = [file for file in files if any(file.endswith(ext) for ext in media_extensions)]
-        files_with_correct_type = len(supported_files)
+        supported_files = [file for file in files if any(file.endswith(extension) for extension in media_extensions)]
+        
+        files_with_correct_type += len(supported_files)
 
     return file_count, files_with_correct_type, directory_count
 
@@ -85,7 +117,19 @@ def getPath(text, type):
     
     return path
 
-
+# Define the spinner animation function
+def spinner_animation(stop_event):
+    spinner = ['|', '/', '-', '\\']
+    while not stop_event.is_set():
+        for symbol in spinner:
+            if stop_event.is_set():
+                break
+            sys.stdout.write(f'\r{symbol}')
+            sys.stdout.flush()
+            time.sleep(0.1)
+    
+    # Clear the last character
+    print('\r ', end='\r', flush=True)
 
 
 if __name__ == "__main__":

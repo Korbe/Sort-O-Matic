@@ -1,108 +1,67 @@
 
 
 import os
-import shutil
 import time
 from io_helper import create_directory, move_file
 from config import media_extensions, months
 from timestamp_extractor import get_oldest_timestamp, hasTimestamp
 
-
+mediaPathMapping = {}
 
 def sort(source,  target):
-    processed_files = 0
-    start_time = time.time()
-    
+    processed_files = 0    
     errors = ""
 
     for current, _, files in os.walk(source):
         for file in files:
+            
             try:
                 process_image(current, target, file)
                 processed_files+=1
             except Exception  as ex:
                 errors+=f"\nError:{ex} at file {os.path.join(current, file)}"
             
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-
-
-
-
-def move_unsupported_file(source, target, file):
-        unsupportedPath = os.path.join(target, "#Unsupported")
-        create_directory(unsupportedPath)
-        move_file(source, os.path.join(unsupportedPath, file))
+    
+    
+    return mediaPathMapping, processed_files, errors
         
 
 def process_image(source, target, file):
-    print(f"\nProcessing {file}")
+    filePath = os.path.join(source, file)
+    extension = os.path.splitext(file)[1].lower()
     
     # if file not supported
-    if os.path.splitext(file)[2].lower() not in media_extensions:
-        move_unsupported_file()
-        print(f"MOVED\tFiletype not supported {file}")
-        return None
+    if  extension not in media_extensions:
+        mediaPathMapping[filePath]=os.path.join(target, "#Unsupported", file)
+        return
     
-    file = os.path.join(source, file)
-    
-    oldest_timestamp = get_oldest_timestamp(file)
+    oldest_timestamp = get_oldest_timestamp(filePath)
 
     if oldest_timestamp:
-        process_valid_image(file, target, oldest_timestamp)
-        return True
+        process_valid_image(filePath, target, oldest_timestamp)
     else:
-        process_invalid_image(file, target)
-        return False
-       
-       
-       
+        mediaPathMapping[filePath]=os.path.join(target, "#Skipped", file)
        
        
 def process_valid_image(image_path, target, timestamp):
-    year = timestamp.year
-    month = timestamp.month
-    month_name = months[month - 1]
     filename = os.path.basename(image_path)
 
-    target_path = os.path.join(target, str(year), f"{month:02d}-{month_name}")
+    target_path = os.path.join(target, str( timestamp.year), f"{timestamp.month:02d}-{months[timestamp.month - 1]}")
     
     new_filename = get_unique_filename(target_path, filename, timestamp)
     
-    if "Kopie" in filename or "copy" in filename:
-        target_path = os.path.join(target_path, "#Copy")
-    elif "dupl" in filename:
-        target_path = os.path.join(target_path, "#Duplicates")
-           
-    create_directory(target_path)
-    move_file(image_path, os.path.join(target_path, new_filename))
-    print(f"Moved {filename} to {target_path}")
-
-def process_invalid_image(image_path, target):
-    skipped_directory = os.path.join(target, "#Skipped")
-    skipped_filepath = os.path.join(skipped_directory, filename)
-    filename = os.path.basename(image_path)
-    
-    create_directory(skipped_directory)
-    
-    move_file(image_path, skipped_filepath)
-    print(f"Skipped {filename}, moved to {skipped_filepath}")
+    mediaPathMapping[image_path]=os.path.join(target_path, new_filename)     
 
 
 def get_unique_filename(directory : str, filename : str, timestamp : str) -> str:
-    filename, extension = os.path.splitext(filename)
+    base, extension = os.path.splitext(filename)
     
     timestamp = timestamp.strftime('%Y-%m-%d')
+    filename = timestamp
     
-    found_date, format = hasTimestamp(filename)
-    if found_date:
-        filename.replace(found_date, timestamp)
-    else:
-        filename = f"{timestamp}_{filename}"
-
-    count = 1
-    while os.path.exists(os.path.join(directory, filename)):
-        filename = f"{filename}-dupl-{count:03d}"
+    count = 2
+    while os.path.exists(os.path.join(directory, f"{filename}{extension}")):
+        filename = f"{timestamp}_{count}"
         count += 1
 
-    return f"{filename}.{extension}"
+    return f"{filename}{extension}"

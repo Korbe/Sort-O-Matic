@@ -2,15 +2,26 @@ import shutil
 import os
 from PIL import Image
 from config import months
-from env import MOVE_FILES;
-
-moveFiles = False    
+from arg_parser import args
 
 def move_file(source_path, target_path):
-    if MOVE_FILES:
+
+    if not os.path.exists(source_path):
+        print(f"Error: move_file Source path '{source_path}' does not exist.")
+        return
+    
+    counter = 2
+    base, ext = os.path.splitext(target_path)
+    
+    while os.path.exists(target_path):
+        target_path = f"{base}_{counter}{ext}"
+        counter += 1
+
+    if args.move:
         shutil.move(source_path, target_path)
     else:
         shutil.copy(source_path, target_path)
+        
 
 def create_directory(directory_path):
     if not os.path.exists(directory_path):
@@ -31,7 +42,6 @@ def create_months_folder(filepath):
             if not os.path.exists(folder_path):
                 # Create the subfolder
                 os.makedirs(folder_path)
-
 
 
 def is_valid_image(file_path):

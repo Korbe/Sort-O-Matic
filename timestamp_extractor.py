@@ -1,11 +1,11 @@
-import datetime
 import os
 import re
+from datetime import datetime
 from PIL import Image
 from PIL.ExifTags import TAGS
-from config import date_format_regexes, date_formats
+from config import date_format_regexes, date_formats, strptime_formats
 from io_helper import is_valid_image
-
+from env import PRINT_ANALYZES_DETAIL
 
 
 def  get_oldest_timestamp(image_path):
@@ -24,9 +24,8 @@ def  get_oldest_timestamp(image_path):
 
     if timestamps:
         oldest_timestamp = min(timestamps)
-        print(f"EXTRACTED\tFile - \t{file_date}\tEXIF - \t{exif_date}\tFilename - \t{filename_date}")
-    else:
-        print("WARN\t No timestamp could be retrieved")
+        if(PRINT_ANALYZES_DETAIL):
+            print(f"File - \t{file_date}\nEXIF - \t{exif_date}\nName - \t{filename_date}")
         
     return oldest_timestamp
 
@@ -46,23 +45,26 @@ def extract_timestamp_from_file(filepath):
 
 def hasTimestamp(string):
     
+    if(string == "20150403_153433.jpg"):
+        let = ""
+    
     for index, pattern in enumerate(date_format_regexes):
         match = re.search(pattern, string)
         if match:
-            return match.group(), date_formats[index]
+            return match.group(), date_formats[index], strptime_formats[index]
             
-    return None, None
+    return None, None, None #datestring, dateformat, strptime_format
 
 def extract_timestamp_from_filename(filename):
     
-    date, format = hasTimestamp(filename)
+    date, format, strptime_format = hasTimestamp(filename)
     
-    if(date is None and format is None):
+    if(date is None and format is None and strptime_format is None):
         return None
     
     try:
-        return datetime.strptime(date, format)
-    except ValueError:
+        return datetime.strptime(date, strptime_format)
+    except ValueError as ex:
         pass# Invalid date for the current format
             
     return None
