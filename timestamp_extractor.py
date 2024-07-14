@@ -4,7 +4,7 @@ from datetime import datetime
 from PIL import Image
 from PIL.ExifTags import TAGS
 from config import date_format_regexes, date_formats, strptime_formats
-from io_helper import is_valid_image
+from io_service import is_valid_image
 from env import PRINT_ANALYZES_DETAIL
 
 

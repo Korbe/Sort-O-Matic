@@ -5,7 +5,7 @@ import time
 from env import CREATE_TEMPLATE, PRINT_ANALYZES_DETAIL
 from image_processor import process_image, sort
 from config import media_extensions
-from io_helper import create_directory, create_template_folder, move_file
+from io_service import create_directory, create_template_folder, move_file
 from arg_parser import args
 
 def main():
