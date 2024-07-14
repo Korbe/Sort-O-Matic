@@ -7,3 +7,6 @@ you need ffprobe.exe
 download here https://github.com/BtbN/FFmpeg-Builds/releases
 or unzip the ffprobe.zip file if exist
 lastest windows and put in in the root dir
+
+# Install packages
+pip install -r requirements.txt
