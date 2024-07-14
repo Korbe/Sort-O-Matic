@@ -3,7 +3,7 @@ import sys
 import threading
 import time
 from env import CREATE_TEMPLATE, PRINT_ANALYZES_DETAIL
-from image_processor import process_image, sort
+from image_processor import sort
 from config import media_extensions
 from io_service import create_directory, create_template_folder, move_file
 from arg_parser import args
@@ -54,7 +54,7 @@ def analyze_media(file_count, directory_count):
             stop_event.set()
             spinner_thread.join()
         
-    print(f"Completed in {int(elapsed_time // 60)} minutes or {elapsed_time:.3f} seconds")
+    print(f"Completed in {int(elapsed_time // 60)} minutes or {elapsed_time % 60:.3f} seconds")
     print(f"Analyzed {processed_files}/{file_count} files in {directory_count} directories")
     
     if(errors):
@@ -86,7 +86,7 @@ def move_files(mediaPathMapping, file_count, directory_count):
         stop_event.set()
         spinner_thread.join()
         
-    print(f"Completed in {int(elapsed_time // 60)} minutes or {elapsed_time:.3f} seconds")
+    print(f"Completed in {int(elapsed_time // 60)} minutes or {elapsed_time % 60:.3f} seconds")
     print(f"{'Moved' if args.move else 'Copied'} {len(mediaPathMapping)}/{file_count} files in {directory_count} directories")
 
 
@@ -98,7 +98,7 @@ def count_files(directory : str):
     for _, _, files in os.walk(directory):
         directory_count += 1;
         file_count += len(files)
-        supported_files = [file for file in files if any(file.endswith(extension) for extension in media_extensions)]
+        supported_files = [file for file in files if any(file.lower().endswith(extension) for extension in media_extensions)]
         
         files_with_correct_type += len(supported_files)
 
