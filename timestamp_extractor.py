@@ -1,22 +1,33 @@
 import os
 import re
 from datetime import datetime
-from PIL import Image
-from PIL.ExifTags import TAGS
-from config import date_format_regexes, date_formats, strptime_formats
-from io_service import is_valid_image
+import subprocess
+from exif import Image as ExifImage
+from config import date_format_regexes, date_formats, strptime_formats, video_extensions
 from env import PRINT_ANALYZES_DETAIL
 
+def hasTimestamp(string):
+    for index, pattern in enumerate(date_format_regexes):
+        match = re.search(pattern, string)
+        if match:
+            return match.group(), date_formats[index], strptime_formats[index]
+            
+    return None, None, None #datestring, dateformat, strptime_format
 
-def  get_oldest_timestamp(image_path):
+def get_oldest_timestamp(image_path):
     # Extract timestamps
     file_date = extract_timestamp_from_file(image_path)
-    exif_date = extract_timestamp_from_exif(image_path)
     filename_date = extract_timestamp_from_filename(os.path.basename(image_path))
+            
+    if os.path.splitext(image_path)[1].lower() in video_extensions:
+        meta_date = extract_timestamp_from_video(image_path)
+    else:
+         meta_date = extract_timestamp_from_exif_image(image_path)
+    
 
     #filter all timestamps which are not null/none
     timestamps = [
-        ts for ts in [file_date, exif_date, filename_date]
+        ts for ts in [file_date, filename_date, meta_date]
         if ts is not None
     ]
     
@@ -25,9 +36,10 @@ def  get_oldest_timestamp(image_path):
     if timestamps:
         oldest_timestamp = min(timestamps)
         if(PRINT_ANALYZES_DETAIL):
-            print(f"File - \t{file_date}\nEXIF - \t{exif_date}\nName - \t{filename_date}")
+            print(f"File - \t{file_date}\nName - \t{filename_date}\nMeta - \t{meta_date}")
         
     return oldest_timestamp
+
 
 def extract_timestamp_from_file(filepath):
     try:
@@ -43,18 +55,6 @@ def extract_timestamp_from_file(filepath):
     
     return None
 
-def hasTimestamp(string):
-    
-    if(string == "20150403_153433.jpg"):
-        let = ""
-    
-    for index, pattern in enumerate(date_format_regexes):
-        match = re.search(pattern, string)
-        if match:
-            return match.group(), date_formats[index], strptime_formats[index]
-            
-    return None, None, None #datestring, dateformat, strptime_format
-
 def extract_timestamp_from_filename(filename):
     
     date, format, strptime_format = hasTimestamp(filename)
@@ -69,38 +69,69 @@ def extract_timestamp_from_filename(filename):
             
     return None
 
-def extract_timestamp_from_exif(filepath):
-    
-    if not is_valid_image(filepath):
-        return None
-    
+def extract_timestamp_from_exif_image(file_path):
     try:
-        timestamps = []
-        img = Image.open(filepath)
-        exif_data = img._getexif()
+            # Extract EXIF data using exif library
+            with open(file_path, 'rb') as img_file:
+                exif_img = ExifImage(img_file)
 
-        if exif_data is None:
-            return None
+
+            dates_with_tags = []
             
-        for tag, value in exif_data.items():
-            try:
-                tag_name = TAGS.get(tag)
-                
-                if tag_name is None or type(value) is not str:
-                    continue
-
-                # Check if the tag name contains 'date' or 'time'
-                if ('date' in tag_name.lower() or 'time' in tag_name.lower()) and len(value) >= 6:
+            date_tags = [
+                'datetime',
+                'datetime_original',
+                'datetime_digitized',
+                'gps_datestamp'
+            ]
+            
+            # Extract dates from the EXIF tags
+            for tag in date_tags:
+                if hasattr(exif_img, tag):
+                    date_str = getattr(exif_img, tag)
+                    if tag == 'gps_datestamp':
+                        # GPS date does not include time, we add a default time
+                        date_str += ' 00:00:00'
                     try:
-                        timestamps.append(datetime.strptime(value, '%Y:%m:%d %H:%M:%S'))
-                    except ValueError as e:
-                        print(f'{tag}\t -\t{tag_name} - \tAn ValueError occurred while reading Exif: {e}')
+                        date, format, strptime_format = hasTimestamp(date_str)
+        
+                        timestamp = datetime.strptime(date, strptime_format)
+                        dates_with_tags.append(timestamp)
+                    except ValueError:
                         pass
-            except Exception as e:
-                print(f'{tag}\t -\t{tag_name} - \tAn Exception occurred while reading Exif: {e}')
             
-        return min(timestamps)
+            # If dates were found, return the oldest one
+            if dates_with_tags:
+                return min(dates_with_tags)
+            else:
+                return None
+    
+    except (IOError, OSError, Exception) as ex:
+        return None
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+def extract_timestamp_from_video(video_path):
+    try:
+        
+        #Command to run ffprobe and extract relevant tags
+        cmd = [
+            'ffprobe', '-v', 'error',
+            '-show_entries', 'format_tags=creation_time', 
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            video_path
+        ]  
+        
+        # Run the command and capture output
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8').strip()
+        
+        date, format, strptime_format = hasTimestamp(output)
+        
+        timestamp = datetime.strptime(date, strptime_format)
+        
+        return timestamp
+    
+    except subprocess.CalledProcessError as ex:
+        print(f"Error running ffprobe on {video_path}: {ex}")
+        return None
+    except Exception as ex:
+        print(f"Unexpected error processing {video_path}: {ex}")
         return None

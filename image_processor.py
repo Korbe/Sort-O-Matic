@@ -1,8 +1,4 @@
-
-
 import os
-import time
-from io_service import create_directory, move_file
 from config import media_extensions, months
 from timestamp_extractor import get_oldest_timestamp, hasTimestamp
 
