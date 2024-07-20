@@ -123,6 +123,9 @@ def extract_timestamp_from_video(video_path):
         # Run the command and capture output
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8').strip()
         
+        if not output:
+            return None
+        
         date, format, strptime_format = hasTimestamp(output)
         
         timestamp = datetime.strptime(date, strptime_format)
