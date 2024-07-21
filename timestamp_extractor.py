@@ -34,7 +34,10 @@ def get_oldest_timestamp(image_path):
     oldest_timestamp = None
 
     if timestamps:
-        oldest_timestamp = min(timestamps)
+        if(meta_date):
+            oldest_timestamp = meta_date
+        else:
+            oldest_timestamp = min(timestamps)
         if(PRINT_ANALYZES_DETAIL):
             print(f"File - \t{file_date}\nName - \t{filename_date}\nMeta - \t{meta_date}")
         
