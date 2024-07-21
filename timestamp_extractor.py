@@ -28,7 +28,7 @@ def get_oldest_timestamp(image_path):
     #filter all timestamps which are not null/none
     timestamps = [
         ts for ts in [file_date, filename_date, meta_date]
-        if ts is not None
+        if ts is not None and ts.year >= 1900
     ]
     
     oldest_timestamp = None
@@ -131,9 +131,7 @@ def extract_timestamp_from_video(video_path):
         timestamp = datetime.strptime(date, strptime_format)
         
         return timestamp
-    
-    except subprocess.CalledProcessError as ex:
-        print(f"Error running ffprobe on {video_path}: {ex}")
+    except subprocess.CalledProcessError as e:
         return None
     except Exception as ex:
         print(f"Unexpected error processing {video_path}: {ex}")
