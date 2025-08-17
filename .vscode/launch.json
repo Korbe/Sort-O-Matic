@@ -1,14 +1,16 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug main",
+            "name": "Debug Sort-o-Matic",
             "type": "debugpy",
             "request": "launch",
-            "program": "main.py",
+            "program": "${workspaceFolder}/sort-o-matic.py",
+            "args": [
+                "-s", "D:\\ToSort\\Neuer Ordner",
+                "-t", "D:\\Media",
+                "-k", "-m" 
+            ],
             "console": "integratedTerminal"
         }
     ]

@@ -1,5 +1,5 @@
 exif==1.6.0
 ExifRead==3.0.0
 future==1.0.0
-Pillow==10.0.0
+Pillow==11.3.0
 plum-py==0.8.7

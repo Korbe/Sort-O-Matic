@@ -3,3 +3,4 @@ assets/
 archive/target/
 output/
 ffprobe.exe
+pypy/
