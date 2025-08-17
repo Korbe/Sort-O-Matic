@@ -1,6 +1,7 @@
 MOVE_FILES = False
 CREATE_TEMPLATE = False
 PRINT_ANALYZES_DETAIL = False
+KEEP_NAMES = False
 
 DEFAULT_SOURCE = "assets/fileswitherror"
 DEFAULT_TARGET = "output"

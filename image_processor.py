@@ -1,6 +1,7 @@
 import os
 from config import media_extensions, months
 from timestamp_extractor import get_oldest_timestamp, hasTimestamp
+from arg_parser import args
 
 mediaPathMapping = {}
 
@@ -54,10 +55,17 @@ def get_unique_filename(directory : str, filename : str, timestamp : str) -> str
     
     timestamp = timestamp.strftime('%Y-%m-%d')
     filename = timestamp
+
+    if args.keepnames:
+        filename = f"{filename}_{base}" 
     
     count = 2
     while os.path.exists(os.path.join(directory, f"{filename}{extension}")):
-        filename = f"{timestamp}_{count}"
+        filename = f"{timestamp} ({count})"
+
+        if args.keepnames:
+            filename = f"{timestamp}_{base} ({count})" 
+
         count += 1
 
     return f"{filename}{extension}"
