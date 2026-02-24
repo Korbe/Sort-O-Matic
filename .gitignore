@@ -4,3 +4,5 @@ archive/target/
 output/
 ffprobe.exe
 pypy/
+Sort-O-Matic-UI/obj/
+Sort-O-Matic-UI/.vs/

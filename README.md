@@ -16,8 +16,14 @@ Sort-O-Matic is a Python script that organizes images into yearly and monthly fo
 For **help** of the command line parameters enter
     
     py sort-o-matic.py -h
+	
+## Execute the UI
+You need 
+- Sort-O-Matic-UI.dll
+- Sort-O-Matic-UI.runtimeconfig.json
+- Sort-O-Matic-UI.exe
 
-
+In base directory.
 
 ### For video meta data datetime retrieval
 
